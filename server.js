@@ -43,6 +43,7 @@ app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/posts', postsRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/v1/activate', activateRoutes);
+app.get('/admin', (req, res) => res.sendFile(path. join(__dirname, 'public', 'admin.html')));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
