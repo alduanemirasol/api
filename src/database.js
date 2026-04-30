@@ -1,52 +1,46 @@
-const initSqlJs = require('sql.js');
-const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
 
-let db;
+let pool;
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env. DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    });
+  }
+  return pool;
+}
 
 async function initDb() {
-  const SQL = await initSqlJs();
-  const dbPath = path.join(__dirname, '..', 'activation.db');
+  const db = getPool();
   
-  if (fs.existsSync(dbPath)) {
-    const buffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(buffer);
-  } else {
-    db = new SQL.Database();
-  }
-
-  db.run(`
+  await db.query(`
     CREATE TABLE IF NOT EXISTS activation_keys (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      key TEXT UNIQUE NOT NULL,
+      id SERIAL PRIMARY KEY,
+      key VARCHAR(64) UNIQUE NOT NULL,
       description TEXT,
-      active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      used_at DATETIME
+      active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      used_at TIMESTAMP
     )
   `);
-
-  saveDb();
 }
 
 function saveDb() {
-  if (!db) return;
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(path.join(__dirname, '..', 'activation.db'), buffer);
-}
-
-function getDb() {
-  return db;
+  // Not needed for PostgreSQL - data persists automatically
 }
 
 function validateActivationKey(key) {
-  if (!key) return false;
-  const stmt = db.prepare('SELECT * FROM activation_keys WHERE key = ? AND active = 1');
-  stmt.bind([key]);
-  const valid = stmt.step();
-  stmt.free();
-  return valid;
+  return new Promise((resolve) => {
+    if (!key) return resolve(false);
+    const db = getPool();
+    db.query('SELECT id FROM activation_keys WHERE key = $1 AND active = true', [key], (err, res) => {
+      resolve(!err && res.rows.length > 0);
+    });
+  });
 }
 
-module.exports = { initDb, saveDb, getDb, validateActivationKey };
+module.exports = { initDb, saveDb, getPool, validateActivationKey };
