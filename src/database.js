@@ -1,13 +1,11 @@
 const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
 
 let pool;
 
 function getPool() {
   if (!pool) {
     pool = new Pool({
-      connectionString: process.env. DATABASE_URL,
+      connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
     });
   }
@@ -29,18 +27,13 @@ async function initDb() {
   `);
 }
 
-function saveDb() {
-  // Not needed for PostgreSQL - data persists automatically
-}
+function saveDb() {}
 
-function validateActivationKey(key) {
-  return new Promise((resolve) => {
-    if (!key) return resolve(false);
-    const db = getPool();
-    db.query('SELECT id FROM activation_keys WHERE key = $1 AND active = true', [key], (err, res) => {
-      resolve(!err && res.rows.length > 0);
-    });
-  });
+async function validateActivationKey(key) {
+  if (!key) return false;
+  const db = getPool();
+  const result = await db.query('SELECT id FROM activation_keys WHERE key = $1 AND active = true', [key]);
+  return result.rows.length > 0;
 }
 
 module.exports = { initDb, saveDb, getPool, validateActivationKey };

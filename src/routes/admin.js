@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express. Router();
 const { v4: uuidv4 } = require('uuid');
-const { getPool } = require('.. /database');
+const { getPool } = require('../database');
 const ADMIN_KEY = process.env.ADMIN_KEY || 'admin-secret';
 
 function requireAdmin(req, res, next) {
