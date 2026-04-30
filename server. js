@@ -29,7 +29,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/api/vi/status', (req, res) => {
+app.get('/api/v1/status', (req, res) => {
   res.json({
     app: 'Express API',
     version: '1.0.0',
@@ -38,9 +38,9 @@ app.get('/api/vi/status', (req, res) => {
   });
 });
 
-app.use('/api/vi/users', usersRoutes);
-app.use('/api/vi/posts', postsRoutes);
-app.use('/api/vi/activate', activateRoutes);
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/posts', postsRoutes);
+app.use('/api/v1/activate', activateRoutes);
 app.use('/admin', adminRoutes);
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
@@ -55,11 +55,11 @@ app.use((req, res) => {
 
 async function start() {
   await initDb();
-  app.listen(PORT, () => {
+  app. listen(PORT, () => {
     console.log(`Server running on port ${PORT} (${NODE_ENV})`);
   });
 }
 
 start();
 
-module.exports = app;
+module. exports = app;
