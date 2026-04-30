@@ -3,6 +3,13 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const fs = require('fs');
+
+const { initDb, saveDb, getDb } = require('./src/database');
+const usersRoutes = require('./src/routes/users');
+const postsRoutes = require('./src/routes/posts');
+const adminRoutes = require('./src/routes/admin');
+const activateRoutes = require('./src/routes/activate');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,19 +20,6 @@ app.use(cors());
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-const users = [
-  { id: 1, name: 'Alice', email: 'alice@example.com' },
-  { id: 2, name: 'Bob', email: 'bob@example.com' }
-];
-
-let posts = [
-  { id: 1, title: 'Hello World', content: 'First post!', author: 'Alice' },
-  { id: 2, title: 'Express Rocks', content: 'Express is awesome', author: 'Bob' }
-];
-
-let nextUserId = 3;
-let nextPostId = 3;
 
 app.get('/health', (req, res) => {
   res.json({ 
@@ -44,65 +38,10 @@ app.get('/api/v1/status', (req, res) => {
   });
 });
 
-app.get('/api/v1/users', (req, res) => {
-  res.json({ success: true, data: users });
-});
-
-app.get('/api/v1/users/:id', (req, res) => {
-  const user = users.find(u => u.id === parseInt(req.params.id));
-  if (!user) return res.status(404).json({ success: false, error: 'User not found' });
-  res.json({ success: true, data: user });
-});
-
-app.post('/api/v1/users', (req, res) => {
-  const { name, email } = req.body;
-  if (!name || !email) {
-    return res.status(400).json({ success: false, error: 'Name and email required' });
-  }
-  const newUser = { id: nextUserId++, name, email };
-  users.push(newUser);
-  res.status(201).json({ success: true, data: newUser });
-});
-
-app.get('/api/v1/posts', (req, res) => {
-  res.json({ success: true, data: posts });
-});
-
-app.get('/api/v1/posts/:id', (req, res) => {
-  const post = posts.find(p => p.id === parseInt(req.params.id));
-  if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
-  res.json({ success: true, data: post });
-});
-
-app.post('/api/v1/posts', (req, res) => {
-  const { title, content, author } = req.body;
-  if (!title || !content) {
-    return res.status(400).json({ success: false, error: 'Title and content required' });
-  }
-  const newPost = { id: nextPostId++, title, content, author: author || 'Anonymous' };
-  posts.push(newPost);
-  res.status(201).json({ success: true, data: newPost });
-});
-
-app.put('/api/v1/posts/:id', (req, res) => {
-  const post = posts.find(p => p.id === parseInt(req.params.id));
-  if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
-  
-  const { title, content, author } = req.body;
-  if (title) post.title = title;
-  if (content) post.content = content;
-  if (author) post.author = author;
-  
-  res.json({ success: true, data: post });
-});
-
-app.delete('/api/v1/posts/:id', (req, res) => {
-  const index = posts.findIndex(p => p.id === parseInt(req.params.id));
-  if (index === -1) return res.status(404).json({ success: false, error: 'Post not found' });
-  
-  posts.splice(index, 1);
-  res.json({ success: true, message: 'Post deleted' });
-});
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/posts', postsRoutes);
+app.use('/admin', adminRoutes);
+app.use('/api/v1/activate', activateRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -113,6 +52,13 @@ app.use((req, res) => {
   res.status(404).json({ success: false, error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (${NODE_ENV})`);
-});
+async function start() {
+  await initDb();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT} (${NODE_ENV})`);
+  });
+}
+
+start();
+
+module.exports = app;
